@@ -33,7 +33,6 @@ class AppState extends ChangeNotifier {
   void addBox(BoxModel b) {
     boxes.add(b);
     b.controller.addListener(_emit);
-    b.controller.changes.listen((_) => _emit());
     notifyListeners();
   }
 
