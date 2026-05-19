@@ -54,8 +54,10 @@ List<ParagraphView> extractParagraphs(Document doc) {
           runs.add(_toRun(piece, attrs));
         }
         if (i < parts.length - 1) {
-          // The newline op in Quill carries block-level attributes on the '\n'
-          // itself; attrs here is from the current op.
+          // Block attributes (align, indent, list) are sourced from the op containing
+          // the closing '\n'. flutter_quill normalizes deltas to split text and the
+          // trailing '\n' into separate ops, so inline-only ops don't bleed block
+          // attrs into _closeParagraph.
           paragraphs.add(_closeParagraph(runs, attrs));
           runs = <RunView>[];
         }

@@ -60,4 +60,16 @@ void main() {
     final paras = extractParagraphs(doc);
     expect(paras[0].list, 'bullet');
   });
+
+  test('two paragraphs with different alignments', () {
+    final doc = Document()..insert(0, 'first\nsecond');
+    // Apply center alignment to the first paragraph only (positions 0..5 — the
+    // first paragraph). Right-align the second paragraph (positions 6..12).
+    doc.format(0, 5, Attribute.centerAlignment);
+    doc.format(6, 6, Attribute.rightAlignment);
+    final paras = extractParagraphs(doc);
+    expect(paras.length, 2);
+    expect(paras[0].align, 'center');
+    expect(paras[1].align, 'right');
+  });
 }
