@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, test } from '@playwright/test';
 
 export async function gotoApp(page: Page) {
   await page.goto('/');
@@ -56,4 +56,4 @@ export async function dragBy(page: Page, id: string, dx: number, dy: number) {
   await page.mouse.up();
 }
 
-export { expect };
+export { expect, test };
