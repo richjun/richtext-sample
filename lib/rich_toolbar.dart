@@ -2,11 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'state.dart';
 
+class _Choice {
+  final String id;
+  final String label;
+  final Attribute attr;
+  const _Choice(this.id, this.label, this.attr);
+}
+
 class RichToolbar extends StatelessWidget {
   final AppState state;
   const RichToolbar({super.key, required this.state});
 
   QuillController? get _ctrl => state.selectedBox?.controller;
+
+  void _apply(Attribute a) {
+    final c = _ctrl;
+    if (c == null) return;
+    c.formatSelection(a);
+  }
 
   void _toggleSimple(Attribute on) {
     final c = _ctrl;
@@ -22,13 +35,50 @@ class RichToolbar extends StatelessWidget {
       height: 44,
       color: const Color(0xFFE9E9E9),
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(children: [
-        _icon('tb-bold', Icons.format_bold, () => _toggleSimple(Attribute.bold)),
-        _icon('tb-italic', Icons.format_italic, () => _toggleSimple(Attribute.italic)),
-        _icon('tb-underline', Icons.format_underline, () => _toggleSimple(Attribute.underline)),
-        _icon('tb-strike', Icons.format_strikethrough, () => _toggleSimple(Attribute.strikeThrough)),
-      ]),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          _icon('tb-bold', Icons.format_bold, () => _toggleSimple(Attribute.bold)),
+          _icon('tb-italic', Icons.format_italic, () => _toggleSimple(Attribute.italic)),
+          _icon('tb-underline', Icons.format_underline, () => _toggleSimple(Attribute.underline)),
+          _icon('tb-strike', Icons.format_strikethrough, () => _toggleSimple(Attribute.strikeThrough)),
+          const VerticalDivider(),
+
+          _pickerBtn('tb-color', Icons.format_color_text, _colors(prefix: 'color')),
+          _pickerBtn('tb-highlight', Icons.highlight, _colors(prefix: 'hl')),
+
+          const VerticalDivider(),
+          _pickerBtn('tb-font', Icons.font_download, [
+            _Choice('font-Roboto', 'Roboto', Attribute.fromKeyValue('font', 'Roboto')!),
+            _Choice('font-NotoSansKR', 'NotoSansKR', Attribute.fromKeyValue('font', 'NotoSansKR')!),
+            _Choice('font-Courier', 'Courier', Attribute.fromKeyValue('font', 'Courier')!),
+          ]),
+          _pickerBtn('tb-size', Icons.format_size, [
+            _Choice('size-12', '12', Attribute.fromKeyValue('size', 12)!),
+            _Choice('size-14', '14', Attribute.fromKeyValue('size', 14)!),
+            _Choice('size-20', '20', Attribute.fromKeyValue('size', 20)!),
+          ]),
+
+          const VerticalDivider(),
+          _icon('tb-superscript', Icons.superscript, () => _toggleSimple(Attribute.superscript)),
+          _icon('tb-subscript', Icons.subscript, () => _toggleSimple(Attribute.subscript)),
+        ]),
+      ),
     );
+  }
+
+  List<_Choice> _colors({required String prefix}) {
+    final hexCodes = ['FF0000', '00FF00', '0000FF', 'FFFF00', '000000'];
+    return [
+      for (final hex in hexCodes)
+        _Choice(
+          '$prefix-$hex',
+          '#$hex',
+          prefix == 'color'
+              ? Attribute.fromKeyValue('color', '#$hex')!
+              : Attribute.fromKeyValue('background', '#$hex')!,
+        ),
+    ];
   }
 
   Widget _icon(String id, IconData icon, VoidCallback onTap) => Semantics(
@@ -40,4 +90,27 @@ class RichToolbar extends StatelessWidget {
           onPressed: onTap,
         ),
       );
+
+  Widget _pickerBtn(String id, IconData icon, List<_Choice> choices) {
+    return Semantics(
+      identifier: id,
+      button: true,
+      child: PopupMenuButton<_Choice>(
+        tooltip: id,
+        icon: Icon(icon, size: 18),
+        onSelected: (c) => _apply(c.attr),
+        itemBuilder: (_) => [
+          for (final c in choices)
+            PopupMenuItem(
+              value: c,
+              child: Semantics(
+                identifier: c.id,
+                button: true,
+                child: Text(c.label),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
