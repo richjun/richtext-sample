@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_quill/translations.dart' show FlutterQuillLocalizations;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'canvas_page.dart';
+import 'js_inspector.dart';
 import 'state.dart';
 
 void main() {
@@ -14,6 +15,7 @@ void main() {
     x: 80, y: 80, width: 360, height: 180,
   ));
   state.select('box-1');
+  installInspector(state);
   runApp(RichTextApp(state: state));
 }
 
