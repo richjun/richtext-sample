@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_quill/translations.dart' show FlutterQuillLocalizations;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'canvas_page.dart';
@@ -8,7 +7,12 @@ import 'state.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SemanticsBinding.instance.ensureSemantics();
+  // NOTE: SemanticsBinding.instance.ensureSemantics() intentionally NOT called.
+  // Forcing semantics on intercepts pointer events at <flt-semantics> nodes
+  // and prevents Quill's TapGestureRecognizer from reaching the editor,
+  // which in turn blocks the Flutter text-editing-host from being attached.
+  // Playwright targeting now uses coordinate-based clicks driven by
+  // window.__inspector.layout() instead of flt-semantics-identifier.
   final state = AppState();
   state.addBox(BoxModel(
     id: 'box-1',

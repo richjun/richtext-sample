@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'state.dart';
+import 'test_registry.dart';
 
 class _Choice {
   final String id;
@@ -108,36 +109,27 @@ class RichToolbar extends StatelessWidget {
     ];
   }
 
-  Widget _icon(String id, IconData icon, VoidCallback onTap) => Semantics(
-        identifier: id,
-        button: true,
-        child: IconButton(
-          tooltip: id,
-          icon: Icon(icon, size: 18),
-          onPressed: onTap,
-        ),
+  Widget _icon(String id, IconData icon, VoidCallback onTap) => IconButton(
+        key: keyFor(id),
+        tooltip: id,
+        icon: Icon(icon, size: 18),
+        onPressed: onTap,
       );
 
   Widget _pickerBtn(String id, IconData icon, List<_Choice> choices) {
-    return Semantics(
-      identifier: id,
-      button: true,
-      child: PopupMenuButton<_Choice>(
-        tooltip: id,
-        icon: Icon(icon, size: 18),
-        onSelected: (c) => _apply(c.attr),
-        itemBuilder: (_) => [
-          for (final c in choices)
-            PopupMenuItem(
-              value: c,
-              child: Semantics(
-                identifier: c.id,
-                button: true,
-                child: Text(c.label),
-              ),
-            ),
-        ],
-      ),
+    return PopupMenuButton<_Choice>(
+      key: keyFor(id),
+      tooltip: id,
+      icon: Icon(icon, size: 18),
+      onSelected: (c) => _apply(c.attr),
+      itemBuilder: (_) => [
+        for (final c in choices)
+          PopupMenuItem(
+            key: keyFor(c.id),
+            value: c,
+            child: Text(c.label),
+          ),
+      ],
     );
   }
 

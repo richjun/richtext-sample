@@ -2,8 +2,9 @@ import { Page, expect, test } from '@playwright/test';
 
 export async function gotoApp(page: Page) {
   await page.goto('/');
-  // Wait for the Flutter web build to register the inspector bridge.
-  await page.waitForFunction(() => (window as any).__inspector?.state, { timeout: 15_000 });
+  await page.waitForFunction(() => (window as any).__inspector?.state, { timeout: 30_000 });
+  await page.waitForFunction(() => (window as any).__inspector?.layout, { timeout: 5_000 });
+  await page.waitForTimeout(400);
 }
 
 export async function readState(page: Page): Promise<any> {
@@ -11,80 +12,73 @@ export async function readState(page: Page): Promise<any> {
   return JSON.parse(raw);
 }
 
-// Flutter Web (HTML renderer / CanvasKit) exposes Semantics(identifier:) as the
-// attribute `flt-semantics-identifier` on <flt-semantics> elements.
-//
-// For Semantics(button:true) nodes the clickable leaf is a sibling flt-semantics
-// with `flt-tappable` and `pointer-events: all`. For popup-menu items the
-// `flt-semantics-identifier` node may NOT be in the DOM until the popup is open,
-// so we wait up to 5 s for it to appear before clicking.
-export async function clickTestId(page: Page, id: string) {
-  // Wait for the element to appear in the DOM (handles popup items that aren't visible
-  // until the parent popup button is clicked).
-  await page.waitForFunction(
-    (id: string) => !!document.querySelector(`[flt-semantics-identifier="${id}"]`),
-    id,
-    { timeout: 5_000 },
-  );
-
-  const coords = await page.evaluate((id: string) => {
-    // Find the node that carries the identifier attribute.
-    const el = document.querySelector(`[flt-semantics-identifier="${id}"]`);
-    if (!el) return null;
-
-    // For Semantics(button:true) toolbar items the actual tappable leaf is a
-    // child with the `flt-tappable` attribute.
-    const tappable = el.querySelector('[flt-tappable]') as HTMLElement | null;
-    const target = (tappable || el) as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-  }, id);
-
-  if (!coords) throw new Error(`Could not find element for id=${id}`);
-  await page.mouse.click(coords.x, coords.y);
+// Get bounding box of a registered element by its testid.
+export async function readLayout(page: Page, id: string): Promise<{x:number,y:number,width:number,height:number}> {
+  const layoutJson = await page.evaluate(() => (window as any).__inspector.layout());
+  const layout = JSON.parse(layoutJson);
+  if (!layout[id]) {
+    throw new Error(`Layout for id "${id}" not found. Available: ${Object.keys(layout).join(', ')}`);
+  }
+  return layout[id];
 }
 
-// Clicks the body of a text box by its box ID.
-// The Dart code wraps the QuillEditor in Semantics(identifier: 'box-${box.id}'),
-// so box with id='box-1' gets identifier 'box-box-1'.
-export async function focusBoxBody(page: Page, boxId: string) {
-  await clickTestId(page, `box-box-${boxId}`);
+// Wait until a registered id appears in the layout (e.g., a popup menu item
+// that's only mounted after the parent is clicked).
+async function waitForLayout(page: Page, id: string, timeout = 5_000): Promise<{x:number,y:number,width:number,height:number}> {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeout) {
+    const layoutJson = await page.evaluate(() => (window as any).__inspector.layout());
+    const layout = JSON.parse(layoutJson);
+    if (layout[id]) return layout[id];
+    await page.waitForTimeout(50);
+  }
+  throw new Error(`Timeout waiting for layout for id "${id}"`);
+}
+
+// Click the center of a registered element (toolbar button, popup item, etc).
+export async function clickTestId(page: Page, id: string) {
+  const r = await waitForLayout(page, id);
+  await page.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
+  await page.waitForTimeout(80);
+}
+
+// Click somewhere inside the box body (focus the editor).
+export async function clickBoxBody(page: Page, boxId: string, offX = 30, offY = 30) {
+  const r = await waitForLayout(page, `box-${boxId}`);
+  await page.mouse.click(r.x + offX, r.y + offY);
+  await page.waitForTimeout(200);
 }
 
 export async function typeText(page: Page, text: string) {
-  // NOTE: In Flutter Web (CanvasKit / HTML renderer) keyboard events do not
-  // reach the QuillEditor text content via the Playwright keyboard API when
-  // running headless. The flt-glass-pane has no bounding box and the
-  // flt-semantics text-field activation does not trigger the
-  // flt-text-editing-host in a headless browser environment.
-  // typeText is kept for API compatibility but has no effect in this harness.
-  await page.keyboard.type(text);
+  await page.keyboard.type(text, { delay: 25 });
 }
 
 export async function selectAll(page: Page) {
-  // Try both macOS and other-platform shortcuts.
   await page.keyboard.press('Meta+A');
+  await page.waitForTimeout(40);
   await page.keyboard.press('Control+A');
+  await page.waitForTimeout(80);
 }
 
-// Drags an element identified by its flt-semantics-identifier.
-// The handle nodes sit in the semantics overlay with pointer-events:all so their
-// bounding rect is the correct drag origin. For box handle identifiers the naming
-// convention in the Dart code is 'box-${box.id}-handle-*' (e.g. 'box-box-1-handle-side-r').
-export async function dragBy(page: Page, id: string, dx: number, dy: number) {
-  const coords = await page.evaluate((id: string) => {
-    const el = document.querySelector(`[flt-semantics-identifier="${id}"]`);
-    if (!el) return null;
-    const rect = el.getBoundingClientRect();
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-  }, id);
-
-  if (!coords) throw new Error(`Could not find element for id=${id}`);
-  const { x, y } = coords;
-  await page.mouse.move(x, y);
+// Drag a registered handle by (dx, dy) pixels.
+export async function dragHandle(page: Page, handleId: string, dx: number, dy: number) {
+  const r = await waitForLayout(page, handleId);
+  const cx = r.x + r.width / 2;
+  const cy = r.y + r.height / 2;
+  await page.mouse.move(cx, cy);
   await page.mouse.down();
-  await page.mouse.move(x + dx, y + dy, { steps: 10 });
+  for (let i = 1; i <= 20; i++) {
+    await page.mouse.move(cx + (dx * i) / 20, cy + (dy * i) / 20);
+    await page.waitForTimeout(10);
+  }
   await page.mouse.up();
+  await page.waitForTimeout(200);
 }
 
-export { expect, test };
+// Take a labeled screenshot and attach it to the test report.
+export async function shot(page: Page, label: string) {
+  const buf = await page.screenshot({ fullPage: false });
+  await test.info().attach(label, { body: buf, contentType: 'image/png' });
+}
+
+export { test, expect };

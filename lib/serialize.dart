@@ -3,8 +3,10 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'extract.dart';
 import 'state.dart';
 
+const _prettyEncoder = JsonEncoder.withIndent('  ');
+
 String serializeAppState(AppState s) {
-  return jsonEncode({
+  return _prettyEncoder.convert({
     'selectedBoxId': s.selectedBoxId,
     'boxes': s.boxes.map(_box).toList(),
   });
