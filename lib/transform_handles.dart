@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'state.dart';
+import 'test_registry.dart';
 
 enum Side { top, right, bottom, left }
 enum Corner { tl, tr, bl, br }
@@ -29,12 +30,12 @@ ResizeResult sideResize({
 }
 
 double cornerScale({
-  required double startDiag,
-  required double currentDiag,
+  required double startDist,
+  required double currentDist,
   required double initialScale,
 }) {
-  if (startDiag <= 0) return initialScale;
-  final s = initialScale * (currentDiag / startDiag);
+  if (startDist <= 0) return initialScale;
+  final s = initialScale * (currentDist / startDist);
   return s < 0.1 ? 0.1 : s;
 }
 
@@ -49,78 +50,87 @@ double rotationAngleDeg({
   return rad * 180.0 / math.pi;
 }
 
-class HandlesOverlay extends StatelessWidget {
+// Map a point in SizedBox-local coords (range [0,w] x [0,h]) to canvas-local
+// coords, mirroring the Flutter transform stack used by TextBox: Positioned ->
+// Transform.rotate(default alignment=center) -> Transform.scale(alignment=topLeft).
+// NOTE: Transform.rotate sees its child's logical size as (w, h), NOT
+// (w*scale, h*scale). So rotation pivots around (w/2, h/2) in the post-scale
+// frame, which equals the visual center only when scale == 1.
+Offset boxLocalToCanvas(Offset boxLocal, BoxModel b) {
+  final scaled = Offset(boxLocal.dx * b.scale, boxLocal.dy * b.scale);
+  final pivot = Offset(b.width / 2, b.height / 2);
+  final rad = b.rotationDeg * math.pi / 180.0;
+  final shifted = scaled - pivot;
+  final c = math.cos(rad);
+  final s = math.sin(rad);
+  final rotated = Offset(
+    shifted.dx * c - shifted.dy * s,
+    shifted.dx * s + shifted.dy * c,
+  );
+  return Offset(b.x + pivot.dx + rotated.dx, b.y + pivot.dy + rotated.dy);
+}
+
+// Canvas-coord position of the box's rotation pivot.
+Offset boxPivotCanvas(BoxModel b) =>
+    Offset(b.x + b.width / 2, b.y + b.height / 2);
+
+// Unit vector along the box's "right" direction in canvas/screen space.
+Offset boxRightAxis(double rotationDeg) {
+  final rad = rotationDeg * math.pi / 180.0;
+  return Offset(math.cos(rad), math.sin(rad));
+}
+
+// Unit vector along the box's "up" direction in canvas/screen space.
+Offset boxUpAxis(double rotationDeg) {
+  final rad = rotationDeg * math.pi / 180.0;
+  return Offset(math.sin(rad), -math.cos(rad));
+}
+
+// All three handles are rendered at the canvas level (not inside the box's
+// transform stack), so they can straddle the edges without being clipped by
+// the editor's hit bounds. Each handle computes its own position by mapping
+// its box-local anchor through the same transform chain the box uses.
+class BoxHandles extends StatelessWidget {
   final AppState state;
   final BoxModel box;
-  const HandlesOverlay({super.key, required this.state, required this.box});
+  final GlobalKey canvasKey;
+  const BoxHandles({
+    super.key,
+    required this.state,
+    required this.box,
+    required this.canvasKey,
+  });
+
+  static const double handleSize = 10;
+  static const double rotateGap = 25;
 
   @override
   Widget build(BuildContext context) {
     if (state.selectedBoxId != box.id) return const SizedBox.shrink();
-    final w = box.width;
-    final h = box.height;
+
+    // Side-right: midpoint of the visible right edge.
+    final rightMid = boxLocalToCanvas(Offset(box.width, box.height / 2), box);
+    // Corner-br: visible bottom-right corner.
+    final brCorner = boxLocalToCanvas(Offset(box.width, box.height), box);
+    // Rotate: top-edge midpoint + screen-space gap along box-up.
+    final topMid = boxLocalToCanvas(Offset(box.width / 2, 0), box);
+    final up = boxUpAxis(box.rotationDeg);
+    final rotatePos = topMid + up * rotateGap;
+
     return Stack(clipBehavior: Clip.none, children: [
-      _sideHandle(Side.top,    left: w/2 - 5, top: -5),
-      _sideHandle(Side.right,  left: w - 5,   top: h/2 - 5),
-      _sideHandle(Side.bottom, left: w/2 - 5, top: h - 5),
-      _sideHandle(Side.left,   left: -5,      top: h/2 - 5),
-      _cornerHandle(Corner.tl, left: -5,    top: -5),
-      _cornerHandle(Corner.tr, left: w - 5, top: -5),
-      _cornerHandle(Corner.bl, left: -5,    top: h - 5),
-      _cornerHandle(Corner.br, left: w - 5, top: h - 5),
-      Positioned(
-        left: w/2 - 5,
-        top: -30,
-        child: Semantics(
-          identifier: 'box-${box.id}-handle-rotate',
-          button: true,
-          child: _RotateHandle(state: state, box: box),
-        ),
+      _SideRightHandle(
+        state: state, box: box,
+        center: rightMid,
+      ),
+      _BrCornerHandle(
+        state: state, box: box, canvasKey: canvasKey,
+        center: brCorner,
+      ),
+      _RotateHandle(
+        state: state, box: box, canvasKey: canvasKey,
+        center: rotatePos,
       ),
     ]);
-  }
-
-  Widget _sideHandle(Side s, {required double left, required double top}) {
-    const sideAbbrev = {
-      Side.top: 't', Side.right: 'r', Side.bottom: 'b', Side.left: 'l',
-    };
-    final id = 'box-${box.id}-handle-side-${sideAbbrev[s]}';
-    return Positioned(
-      left: left, top: top,
-      child: Semantics(
-        identifier: id,
-        button: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (d) {
-            state.mutateBox(box.id, (b) {
-              final r = sideResize(
-                side: s, dx: d.delta.dx, dy: d.delta.dy,
-                w: b.width, h: b.height,
-              );
-              b.width = r.width;
-              b.height = r.height;
-            });
-          },
-          child: const _Dot(color: Colors.blueAccent),
-        ),
-      ),
-    );
-  }
-
-  Widget _cornerHandle(Corner c, {required double left, required double top}) {
-    const cornerAbbrev = {
-      Corner.tl: 'tl', Corner.tr: 'tr', Corner.bl: 'bl', Corner.br: 'br',
-    };
-    final id = 'box-${box.id}-handle-corner-${cornerAbbrev[c]}';
-    return Positioned(
-      left: left, top: top,
-      child: Semantics(
-        identifier: id,
-        button: true,
-        child: _CornerHandle(state: state, box: box, corner: c),
-      ),
-    );
   }
 }
 
@@ -129,7 +139,8 @@ class _Dot extends StatelessWidget {
   const _Dot({required this.color});
   @override
   Widget build(BuildContext context) => Container(
-        width: 10, height: 10,
+        width: BoxHandles.handleSize,
+        height: BoxHandles.handleSize,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.rectangle,
@@ -138,45 +149,104 @@ class _Dot extends StatelessWidget {
       );
 }
 
-class _CornerHandle extends StatefulWidget {
+class _SideRightHandle extends StatelessWidget {
   final AppState state;
   final BoxModel box;
-  final Corner corner;
-  const _CornerHandle({required this.state, required this.box, required this.corner});
-  @override
-  State<_CornerHandle> createState() => _CornerHandleState();
-}
-
-class _CornerHandleState extends State<_CornerHandle> {
-  double _startDiag = 0;
-  double _initialScale = 1.0;
-  Offset _origin = Offset.zero;
+  final Offset center;
+  const _SideRightHandle({
+    required this.state,
+    required this.box,
+    required this.center,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onPanStart: (d) {
-        _origin = d.globalPosition;
-        _initialScale = widget.box.scale;
-        _startDiag = math.sqrt(
-          widget.box.width * widget.box.width +
-          widget.box.height * widget.box.height,
-        );
-      },
-      onPanUpdate: (d) {
-        final delta = d.globalPosition - _origin;
-        // Simple proxy: use dx as the dominant axis; pulling outward increases scale.
-        final currentDiag = _startDiag + delta.dx;
-        widget.state.mutateBox(widget.box.id, (b) {
-          b.scale = cornerScale(
-            startDiag: _startDiag,
-            currentDiag: currentDiag,
-            initialScale: _initialScale,
-          );
-        });
-      },
-      child: const _Dot(color: Colors.deepOrange),
+    return Positioned(
+      key: keyFor('${box.id}-handle-side-r'),
+      left: center.dx - BoxHandles.handleSize / 2,
+      top: center.dy - BoxHandles.handleSize / 2,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: (d) {
+          state.mutateBox(box.id, (b) {
+            // Project screen-space delta onto the box's right axis so dragging
+            // grows width along the (rotated) right direction, not along
+            // screen-X.
+            final axis = boxRightAxis(b.rotationDeg);
+            final projected = d.delta.dx * axis.dx + d.delta.dy * axis.dy;
+            // Pre-scale width changes are amplified by 1/scale so the visible
+            // edge tracks the pointer at scale != 1. (At scale=1 this is a no-op.)
+            final localDx = projected / b.scale;
+            final r = sideResize(
+              side: Side.right, dx: localDx, dy: 0,
+              w: b.width, h: b.height,
+            );
+            b.width = r.width;
+            b.height = r.height;
+          });
+        },
+        child: const _Dot(color: Colors.blueAccent),
+      ),
+    );
+  }
+}
+
+class _BrCornerHandle extends StatefulWidget {
+  final AppState state;
+  final BoxModel box;
+  final GlobalKey canvasKey;
+  final Offset center;
+  const _BrCornerHandle({
+    required this.state,
+    required this.box,
+    required this.canvasKey,
+    required this.center,
+  });
+
+  @override
+  State<_BrCornerHandle> createState() => _BrCornerHandleState();
+}
+
+class _BrCornerHandleState extends State<_BrCornerHandle> {
+  double _startDist = 0;
+  double _initialScale = 1.0;
+
+  Offset? _pivotGlobal() {
+    final ctx = widget.canvasKey.currentContext;
+    if (ctx == null) return null;
+    final rb = ctx.findRenderObject();
+    if (rb is! RenderBox || !rb.attached) return null;
+    return rb.localToGlobal(boxPivotCanvas(widget.box));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      key: keyFor('${widget.box.id}-handle-corner-br'),
+      left: widget.center.dx - BoxHandles.handleSize / 2,
+      top: widget.center.dy - BoxHandles.handleSize / 2,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (d) {
+          final pivot = _pivotGlobal();
+          if (pivot == null) return;
+          _startDist = (d.globalPosition - pivot).distance;
+          _initialScale = widget.box.scale;
+        },
+        onPanUpdate: (d) {
+          final pivot = _pivotGlobal();
+          if (pivot == null || _startDist <= 0) return;
+          final currentDist = (d.globalPosition - pivot).distance;
+          widget.state.mutateBox(widget.box.id, (b) {
+            b.scale = cornerScale(
+              startDist: _startDist,
+              currentDist: currentDist,
+              initialScale: _initialScale,
+            );
+          });
+        },
+        child: const _Dot(color: Colors.deepOrange),
+      ),
     );
   }
 }
@@ -184,37 +254,53 @@ class _CornerHandleState extends State<_CornerHandle> {
 class _RotateHandle extends StatefulWidget {
   final AppState state;
   final BoxModel box;
-  const _RotateHandle({required this.state, required this.box});
+  final GlobalKey canvasKey;
+  final Offset center;
+  const _RotateHandle({
+    required this.state,
+    required this.box,
+    required this.canvasKey,
+    required this.center,
+  });
+
   @override
   State<_RotateHandle> createState() => _RotateHandleState();
 }
 
 class _RotateHandleState extends State<_RotateHandle> {
-  Offset? _center;
+  Offset? _pivotGlobalCached;
+
+  Offset? _pivotGlobal() {
+    final ctx = widget.canvasKey.currentContext;
+    if (ctx == null) return null;
+    final rb = ctx.findRenderObject();
+    if (rb is! RenderBox || !rb.attached) return null;
+    return rb.localToGlobal(boxPivotCanvas(widget.box));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onPanStart: (d) {
-        final renderBox = context.findRenderObject() as RenderBox?;
-        if (renderBox == null) return;
-        final myGlobal = renderBox.localToGlobal(Offset.zero);
-        // The handle sits 30px above the box top, centered horizontally.
-        // Box center is then at: myGlobal + (5, 30 + height/2)
-        _center = myGlobal + Offset(5, 30 + widget.box.height / 2);
-      },
-      onPanUpdate: (d) {
-        final c = _center;
-        if (c == null) return;
-        widget.state.mutateBox(widget.box.id, (b) {
-          b.rotationDeg = rotationAngleDeg(
-            centerX: c.dx, centerY: c.dy,
-            x: d.globalPosition.dx, y: d.globalPosition.dy,
-          );
-        });
-      },
-      child: const _Dot(color: Colors.green),
+    return Positioned(
+      key: keyFor('${widget.box.id}-handle-rotate'),
+      left: widget.center.dx - BoxHandles.handleSize / 2,
+      top: widget.center.dy - BoxHandles.handleSize / 2,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (_) {
+          _pivotGlobalCached = _pivotGlobal();
+        },
+        onPanUpdate: (d) {
+          final c = _pivotGlobalCached ?? _pivotGlobal();
+          if (c == null) return;
+          widget.state.mutateBox(widget.box.id, (b) {
+            b.rotationDeg = rotationAngleDeg(
+              centerX: c.dx, centerY: c.dy,
+              x: d.globalPosition.dx, y: d.globalPosition.dy,
+            );
+          });
+        },
+        child: const _Dot(color: Colors.green),
+      ),
     );
   }
 }

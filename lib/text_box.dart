@@ -3,12 +3,16 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'state.dart';
-import 'transform_handles.dart';
+import 'test_registry.dart';
 
 class TextBox extends StatelessWidget {
   final AppState state;
   final BoxModel box;
-  const TextBox({super.key, required this.state, required this.box});
+  const TextBox({
+    super.key,
+    required this.state,
+    required this.box,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,32 +28,30 @@ class TextBox extends StatelessWidget {
           child: SizedBox(
             width: box.width,
             height: box.height,
-            child: Stack(clipBehavior: Clip.none, children: [
-              GestureDetector(
-                onTap: () => state.select(box.id),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: selected ? Colors.blue : Colors.grey.shade400,
-                      width: selected ? 2 : 1,
-                    ),
+            child: GestureDetector(
+              key: keyFor(box.id),
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (_) => state.select(box.id),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(
+                    color: selected ? Colors.blue : Colors.grey.shade400,
+                    width: selected ? 2 : 1,
                   ),
-                  child: Semantics(
-                    identifier: 'box-${box.id}',
-                    child: QuillEditor.basic(
-                      controller: box.controller,
-                      configurations: const QuillEditorConfigurations(
-                        padding: EdgeInsets.all(8),
-                        autoFocus: false,
-                        expands: true,
-                      ),
-                    ),
+                ),
+                child: QuillEditor(
+                  controller: box.controller,
+                  focusNode: box.focusNode,
+                  scrollController: box.scrollController,
+                  configurations: const QuillEditorConfigurations(
+                    padding: EdgeInsets.all(8),
+                    autoFocus: false,
+                    expands: true,
                   ),
                 ),
               ),
-              HandlesOverlay(state: state, box: box),
-            ]),
+            ),
           ),
         ),
       ),
