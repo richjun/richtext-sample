@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'state.dart';
@@ -14,7 +16,7 @@ class TextBox extends StatelessWidget {
       left: box.x,
       top: box.y,
       child: Transform.rotate(
-        angle: box.rotationDeg * 3.1415926535 / 180.0,
+        angle: box.rotationDeg * math.pi / 180.0,
         child: Transform.scale(
           scale: box.scale,
           alignment: Alignment.topLeft,
