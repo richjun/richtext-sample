@@ -86,52 +86,36 @@ Offset boxUpAxis(double rotationDeg) {
   return Offset(math.sin(rad), -math.cos(rad));
 }
 
-// All three handles are rendered at the canvas level (not inside the box's
-// transform stack), so they can straddle the edges without being clipped by
-// the editor's hit bounds. Each handle computes its own position by mapping
-// its box-local anchor through the same transform chain the box uses.
-class BoxHandles extends StatelessWidget {
-  final AppState state;
-  final BoxModel box;
-  final GlobalKey canvasKey;
-  const BoxHandles({
-    super.key,
-    required this.state,
-    required this.box,
-    required this.canvasKey,
-  });
+const double kHandleSize = 10;
+const double kRotateGap = 25;
 
-  static const double handleSize = 10;
-  static const double rotateGap = 25;
+// All three handles render at the canvas level (not inside the box's transform
+// stack), so they can straddle the edges without being clipped by the editor's
+// hit bounds. They are returned as a flat list of Positioned widgets so the
+// caller can spread them directly into the canvas Stack — keeping every canvas
+// child positioned, which keeps the Stack's size (and thus the boxes' anchors)
+// stable across selection changes.
+List<Widget> boxHandleWidgets({
+  required AppState state,
+  required BoxModel box,
+  required GlobalKey canvasKey,
+}) {
+  if (state.selectedBoxId != box.id) return const [];
 
-  @override
-  Widget build(BuildContext context) {
-    if (state.selectedBoxId != box.id) return const SizedBox.shrink();
+  // Side-right: midpoint of the visible right edge.
+  final rightMid = boxLocalToCanvas(Offset(box.width, box.height / 2), box);
+  // Corner-br: visible bottom-right corner.
+  final brCorner = boxLocalToCanvas(Offset(box.width, box.height), box);
+  // Rotate: top-edge midpoint + screen-space gap along box-up.
+  final topMid = boxLocalToCanvas(Offset(box.width / 2, 0), box);
+  final up = boxUpAxis(box.rotationDeg);
+  final rotatePos = topMid + up * kRotateGap;
 
-    // Side-right: midpoint of the visible right edge.
-    final rightMid = boxLocalToCanvas(Offset(box.width, box.height / 2), box);
-    // Corner-br: visible bottom-right corner.
-    final brCorner = boxLocalToCanvas(Offset(box.width, box.height), box);
-    // Rotate: top-edge midpoint + screen-space gap along box-up.
-    final topMid = boxLocalToCanvas(Offset(box.width / 2, 0), box);
-    final up = boxUpAxis(box.rotationDeg);
-    final rotatePos = topMid + up * rotateGap;
-
-    return Stack(clipBehavior: Clip.none, children: [
-      _SideRightHandle(
-        state: state, box: box,
-        center: rightMid,
-      ),
-      _BrCornerHandle(
-        state: state, box: box, canvasKey: canvasKey,
-        center: brCorner,
-      ),
-      _RotateHandle(
-        state: state, box: box, canvasKey: canvasKey,
-        center: rotatePos,
-      ),
-    ]);
-  }
+  return [
+    _SideRightHandle(state: state, box: box, center: rightMid),
+    _BrCornerHandle(state: state, box: box, canvasKey: canvasKey, center: brCorner),
+    _RotateHandle(state: state, box: box, canvasKey: canvasKey, center: rotatePos),
+  ];
 }
 
 class _Dot extends StatelessWidget {
@@ -139,8 +123,8 @@ class _Dot extends StatelessWidget {
   const _Dot({required this.color});
   @override
   Widget build(BuildContext context) => Container(
-        width: BoxHandles.handleSize,
-        height: BoxHandles.handleSize,
+        width: kHandleSize,
+        height: kHandleSize,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.rectangle,
@@ -163,8 +147,8 @@ class _SideRightHandle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned(
       key: keyFor('${box.id}-handle-side-r'),
-      left: center.dx - BoxHandles.handleSize / 2,
-      top: center.dy - BoxHandles.handleSize / 2,
+      left: center.dx - kHandleSize / 2,
+      top: center.dy - kHandleSize / 2,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanUpdate: (d) {
@@ -223,8 +207,8 @@ class _BrCornerHandleState extends State<_BrCornerHandle> {
   Widget build(BuildContext context) {
     return Positioned(
       key: keyFor('${widget.box.id}-handle-corner-br'),
-      left: widget.center.dx - BoxHandles.handleSize / 2,
-      top: widget.center.dy - BoxHandles.handleSize / 2,
+      left: widget.center.dx - kHandleSize / 2,
+      top: widget.center.dy - kHandleSize / 2,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanStart: (d) {
@@ -282,8 +266,8 @@ class _RotateHandleState extends State<_RotateHandle> {
   Widget build(BuildContext context) {
     return Positioned(
       key: keyFor('${widget.box.id}-handle-rotate'),
-      left: widget.center.dx - BoxHandles.handleSize / 2,
-      top: widget.center.dy - BoxHandles.handleSize / 2,
+      left: widget.center.dx - kHandleSize / 2,
+      top: widget.center.dy - kHandleSize / 2,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanStart: (_) {

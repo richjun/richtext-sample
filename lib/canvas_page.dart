@@ -34,12 +34,13 @@ class CanvasPage extends StatelessWidget {
                           children: [
                             for (final b in state.boxes)
                               TextBox(state: state, box: b),
-                            // All transform handles render at canvas level so
-                            // they can straddle the box edges without being
-                            // clipped by the editor SizedBox's hit bounds.
+                            // Handles render at canvas level (straddling the box
+                            // edges, free of the editor's hit bounds) and are
+                            // spread in as direct Positioned children so every
+                            // canvas child stays positioned — keeping the Stack
+                            // size and box anchors stable across selection.
                             for (final b in state.boxes)
-                              BoxHandles(
-                                key: ValueKey('handles-${b.id}'),
+                              ...boxHandleWidgets(
                                 state: state,
                                 box: b,
                                 canvasKey: _canvasKey,
