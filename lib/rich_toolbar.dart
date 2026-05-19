@@ -62,6 +62,33 @@ class RichToolbar extends StatelessWidget {
           const VerticalDivider(),
           _icon('tb-superscript', Icons.superscript, () => _toggleSimple(Attribute.superscript)),
           _icon('tb-subscript', Icons.subscript, () => _toggleSimple(Attribute.subscript)),
+          const VerticalDivider(),
+          _icon('tb-align-left', Icons.format_align_left,
+              () => _apply(Attribute.leftAlignment)),
+          _icon('tb-align-center', Icons.format_align_center,
+              () => _apply(Attribute.centerAlignment)),
+          _icon('tb-align-right', Icons.format_align_right,
+              () => _apply(Attribute.rightAlignment)),
+          _icon('tb-indent', Icons.format_indent_increase, () {
+            final c = _ctrl;
+            if (c == null) return;
+            final cur = c.getSelectionStyle().attributes['indent']?.value as int?;
+            final next = (cur ?? 0) + 1;
+            c.formatSelection(_indentLevel(next));
+          }),
+          _icon('tb-outdent', Icons.format_indent_decrease, () {
+            final c = _ctrl;
+            if (c == null) return;
+            final cur = c.getSelectionStyle().attributes['indent']?.value as int?;
+            final next = (cur ?? 0) - 1;
+            if (next <= 0) {
+              c.formatSelection(Attribute.clone(Attribute.indentL1, null));
+            } else {
+              c.formatSelection(_indentLevel(next));
+            }
+          }),
+          _icon('tb-bullet', Icons.format_list_bulleted,
+              () => _toggleSimple(Attribute.ul)),
         ]),
       ),
     );
@@ -112,5 +139,19 @@ class RichToolbar extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Attribute _indentLevel(int n) {
+    switch (n) {
+      case 1:
+        return Attribute.indentL1;
+      case 2:
+        return Attribute.indentL2;
+      case 3:
+        return Attribute.indentL3;
+      default:
+        if (n > 3) return Attribute.indentL3;
+        return Attribute.clone(Attribute.indentL1, null);
+    }
   }
 }
