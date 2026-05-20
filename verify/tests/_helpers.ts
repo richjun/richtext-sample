@@ -54,9 +54,10 @@ export async function typeText(page: Page, text: string) {
 }
 
 export async function selectAll(page: Page) {
-  await page.keyboard.press('Meta+A');
-  await page.waitForTimeout(40);
-  await page.keyboard.press('Control+A');
+  // ControlOrMeta maps to Cmd on macOS and Ctrl on Windows/Linux, so this
+  // selects all on every platform. (Pressing a literal Control+A on macOS
+  // instead moves the caret to line start, collapsing the selection.)
+  await page.keyboard.press('ControlOrMeta+A');
   await page.waitForTimeout(80);
 }
 

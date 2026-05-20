@@ -11,8 +11,7 @@ test('full in/out/in cycle with selection', async ({ page }) => {
   await page.waitForTimeout(200);
   const s1 = await readState(page);
   console.log('Phase 1 (inside, selected text):', JSON.stringify({
-    sel: `${s1.boxes[0].selection.offsetStart}-${s1.boxes[0].selection.offsetEnd}`,
-    selectedBoxId: s1.selectedBoxId,
+    sel: `${s1.selection.offsetStart}-${s1.selection.offsetEnd}`,
   }));
   await shot(page, '1-after-select');
 
@@ -25,8 +24,7 @@ test('full in/out/in cycle with selection', async ({ page }) => {
     hasTextarea: !!document.querySelector('flt-text-editing-host textarea'),
   }));
   console.log('Phase 2 (after outside):', JSON.stringify({
-    sel: `${s2.boxes[0].selection.offsetStart}-${s2.boxes[0].selection.offsetEnd}`,
-    selectedBoxId: s2.selectedBoxId,
+    sel: `${s2.selection.offsetStart}-${s2.selection.offsetEnd}`,
     ...dom2,
   }));
   await shot(page, '2-after-outside');
@@ -40,8 +38,7 @@ test('full in/out/in cycle with selection', async ({ page }) => {
     hasTextarea: !!document.querySelector('flt-text-editing-host textarea'),
   }));
   console.log('Phase 3 (back inside):', JSON.stringify({
-    sel: `${s3.boxes[0].selection.offsetStart}-${s3.boxes[0].selection.offsetEnd}`,
-    selectedBoxId: s3.selectedBoxId,
+    sel: `${s3.selection.offsetStart}-${s3.selection.offsetEnd}`,
     ...dom3,
   }));
   await shot(page, '3-back-inside');
@@ -51,8 +48,7 @@ test('full in/out/in cycle with selection', async ({ page }) => {
   await page.waitForTimeout(300);
   const s4 = await readState(page);
   console.log('Phase 4 (text after cycle):', JSON.stringify({
-    text: s4.boxes[0].paragraphs[0].runs.map((r: any) => r.text).join(''),
-    selectedBoxId: s4.selectedBoxId,
+    text: s4.paragraphs[0].runs.map((r: any) => r.text).join(''),
   }));
   await shot(page, '4-typed-after-cycle');
 });

@@ -7,7 +7,6 @@ class BoxModel {
   double y;
   double width;
   double height;
-  double scale;
   double rotationDeg;
   final QuillController controller;
   final FocusNode focusNode;
@@ -19,7 +18,6 @@ class BoxModel {
     required this.y,
     required this.width,
     required this.height,
-    this.scale = 1.0,
     this.rotationDeg = 0.0,
     QuillController? controller,
     FocusNode? focusNode,

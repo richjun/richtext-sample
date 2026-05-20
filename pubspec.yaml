@@ -61,6 +61,22 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Selectable fonts for the run-level font picker. The family names here must
+  # match the values the toolbar writes into the quill `font` attribute (see
+  # rich_toolbar.dart) and what flutter_quill renders as TextStyle.fontFamily.
+  # CanvasKit (web) can only resolve fonts bundled here — system fonts don't
+  # apply — so every selectable family must be declared.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: fonts/Roboto-Regular.ttf
+    - family: Courier
+      fonts:
+        - asset: fonts/CourierNew-Regular.ttf
+    - family: Poppins
+      fonts:
+        - asset: fonts/Poppins-Regular.ttf
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

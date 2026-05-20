@@ -49,3 +49,6 @@ app.*.map.json
 verify/node_modules
 verify/test-results
 verify/playwright-report
+
+# FVM Version Cache
+.fvm/

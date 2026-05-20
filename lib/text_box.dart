@@ -22,33 +22,29 @@ class TextBox extends StatelessWidget {
       top: box.y,
       child: Transform.rotate(
         angle: box.rotationDeg * math.pi / 180.0,
-        child: Transform.scale(
-          scale: box.scale,
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: box.width,
-            height: box.height,
-            child: GestureDetector(
-              key: keyFor(box.id),
-              behavior: HitTestBehavior.translucent,
-              onTapDown: (_) => state.select(box.id),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(
-                    color: selected ? Colors.blue : Colors.grey.shade400,
-                    width: selected ? 2 : 1,
-                  ),
+        child: SizedBox(
+          width: box.width,
+          height: box.height,
+          child: GestureDetector(
+            key: keyFor(box.id),
+            behavior: HitTestBehavior.translucent,
+            onTapDown: (_) => state.select(box.id),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(
+                  color: selected ? Colors.blue : Colors.grey.shade400,
+                  width: selected ? 2 : 1,
                 ),
-                child: QuillEditor(
-                  controller: box.controller,
-                  focusNode: box.focusNode,
-                  scrollController: box.scrollController,
-                  configurations: const QuillEditorConfigurations(
-                    padding: EdgeInsets.all(8),
-                    autoFocus: false,
-                    expands: true,
-                  ),
+              ),
+              child: QuillEditor(
+                controller: box.controller,
+                focusNode: box.focusNode,
+                scrollController: box.scrollController,
+                configurations: const QuillEditorConfigurations(
+                  padding: EdgeInsets.all(8),
+                  autoFocus: false,
+                  expands: true,
                 ),
               ),
             ),
