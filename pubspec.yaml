@@ -50,6 +50,14 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
 
+# flutter_quill pulls in quill_native_bridge_windows 0.0.2, whose only published
+# version references the bare `GMEM_MOVEABLE` constant. win32 >=5.5 exposes it
+# only via GLOBAL_ALLOC_FLAGS, so the Windows build fails to compile (see
+# flutter-quill issue #2612). Upstream has no fix, so we vendor a patched copy.
+dependency_overrides:
+  quill_native_bridge_windows:
+    path: third_party/quill_native_bridge_windows
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
