@@ -7,7 +7,7 @@
 #define MyAppExeName   "richtext.exe"
 #define BuildDir       "..\..\build\windows\x64\runner\Release"
 #define OutDir         "..\..\build\installer"
-#define IconFile       "..\app_icon.ico"
+#define IconFile       "..\..\windows\runner\resources\app_icon.ico"
 
 [Setup]
 ; A fresh GUID identifies this app to Windows. Do NOT reuse across products.
