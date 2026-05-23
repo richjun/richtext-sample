@@ -1,6 +1,6 @@
 import { test, gotoApp, clickBoxBody, readState, readLayout, typeText, shot } from './_helpers';
 
-test('full in/out/in cycle with selection', async ({ page }) => {
+test('full in/out/in focus cycle', async ({ page }) => {
   await gotoApp(page);
 
   // Phase 1: focus + type + select text
@@ -10,8 +10,8 @@ test('full in/out/in cycle with selection', async ({ page }) => {
   for (let i = 0; i < 5; i++) await page.keyboard.press('Shift+ArrowRight');
   await page.waitForTimeout(200);
   const s1 = await readState(page);
-  console.log('Phase 1 (inside, selected text):', JSON.stringify({
-    sel: `${s1.selection.offsetStart}-${s1.selection.offsetEnd}`,
+  console.log('Phase 1 (inside, typed text):', JSON.stringify({
+    text: s1.paragraphs[0].runs.map((r: any) => r.text).join(''),
   }));
   await shot(page, '1-after-select');
 
@@ -24,7 +24,7 @@ test('full in/out/in cycle with selection', async ({ page }) => {
     hasTextarea: !!document.querySelector('flt-text-editing-host textarea'),
   }));
   console.log('Phase 2 (after outside):', JSON.stringify({
-    sel: `${s2.selection.offsetStart}-${s2.selection.offsetEnd}`,
+    text: s2.paragraphs[0].runs.map((r: any) => r.text).join(''),
     ...dom2,
   }));
   await shot(page, '2-after-outside');
@@ -38,7 +38,7 @@ test('full in/out/in cycle with selection', async ({ page }) => {
     hasTextarea: !!document.querySelector('flt-text-editing-host textarea'),
   }));
   console.log('Phase 3 (back inside):', JSON.stringify({
-    sel: `${s3.selection.offsetStart}-${s3.selection.offsetEnd}`,
+    text: s3.paragraphs[0].runs.map((r: any) => r.text).join(''),
     ...dom3,
   }));
   await shot(page, '3-back-inside');

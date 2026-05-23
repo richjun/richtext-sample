@@ -22,6 +22,5 @@ void main() {
     expect(j['boxes'][0]['scale'], 1.0);
     expect(j['boxes'][0]['rotationDeg'], 0.0);
     expect(j['boxes'][0]['paragraphs'][0]['align'], 'left');
-    expect(j['boxes'][0]['selection']['resolvedAttrs']['bold'], false);
   });
 }

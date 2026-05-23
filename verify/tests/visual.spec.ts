@@ -26,7 +26,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-bold');
     await shot(page, '04-bold-after');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.bold).toBe(true);
     expect(s.paragraphs[0].runs.some((r: any) => r.style.bold)).toBe(true);
   });
 
@@ -38,7 +37,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-italic');
     await shot(page, '05-italic');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.italic).toBe(true);
     expect(s.paragraphs[0].runs.some((r: any) => r.style.italic)).toBe(true);
   });
 
@@ -50,7 +48,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-underline');
     await shot(page, '06-underline');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.underline).toBe('sng');
     expect(s.paragraphs[0].runs.some((r: any) => r.style.underline === 'sng')).toBe(true);
   });
 
@@ -62,7 +59,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-strike');
     await shot(page, '07-strike');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.strikethrough).toBe('single');
     expect(s.paragraphs[0].runs.some((r: any) => r.style.strikethrough === 'single')).toBe(true);
   });
 
@@ -75,7 +71,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'color-FF0000');
     await shot(page, '08-color-red');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.color).toBe('0xFFFF0000');
     expect(s.paragraphs[0].runs.some(
       (r: any) => r.style.color === '0xFFFF0000')).toBe(true);
   });
@@ -89,7 +84,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'hl-FFFF00');
     await shot(page, '09-highlight-yellow');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.highlight).toBe('0xFFFFFF00');
     expect(s.paragraphs[0].runs.some(
       (r: any) => r.style.highlight === '0xFFFFFF00')).toBe(true);
   });
@@ -101,14 +95,11 @@ test.describe('User-flow visual verification', () => {
     await selectAll(page);
     await clickTestId(page, 'tb-highlight');
     await clickTestId(page, 'hl-FFFF00');
-    let s = await readState(page);
-    expect(s.selection.resolvedAttrs.highlight).toBe('0xFFFFFF00');
     // Apply transparent → highlight is removed (background cleared to null).
     await clickTestId(page, 'tb-highlight');
     await clickTestId(page, 'hl-transparent');
     await shot(page, '09b-highlight-transparent');
-    s = await readState(page);
-    expect(s.selection.resolvedAttrs.highlight).toBeNull();
+    const s = await readState(page);
     expect(s.paragraphs[0].runs.some(
       (r: any) => r.style.highlight === '0xFFFFFF00')).toBe(false);
   });
@@ -122,7 +113,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'font-Poppins');
     await shot(page, '10-font-Poppins');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.font).toBe('Poppins');
     expect(s.paragraphs[0].runs.some(
       (r: any) => r.style.font === 'Poppins')).toBe(true);
   });
@@ -136,7 +126,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'size-20');
     await shot(page, '11-size-20');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.size).toBe(20);
     expect(s.paragraphs[0].runs.some((r: any) => r.style.size === 20)).toBe(true);
   });
 
@@ -148,7 +137,7 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-superscript');
     await shot(page, '12-superscript');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.baseline).toBe(30);
+    expect(s.paragraphs[0].runs.some((r: any) => r.style.baseline === 30)).toBe(true);
   });
 
   test('Subscript', async ({ page }) => {
@@ -159,7 +148,7 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-subscript');
     await shot(page, '13-subscript');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.baseline).toBe(-25);
+    expect(s.paragraphs[0].runs.some((r: any) => r.style.baseline === -25)).toBe(true);
   });
 
   test('Align center', async ({ page }) => {
@@ -170,7 +159,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-align-center');
     await shot(page, '14-align-center');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.align).toBe('center');
     expect(s.paragraphs[0].align).toBe('center');
   });
 
@@ -182,7 +170,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-align-right');
     await shot(page, '15-align-right');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.align).toBe('right');
     expect(s.paragraphs[0].align).toBe('right');
   });
 
@@ -194,16 +181,16 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-indent');
     await shot(page, '16-indent-1');
     let s = await readState(page);
-    expect(s.selection.resolvedAttrs.level).toBe(1);
+    expect(s.paragraphs[0].level).toBe(1);
     await clickTestId(page, 'tb-indent');
     s = await readState(page);
-    expect(s.selection.resolvedAttrs.level).toBe(2);
+    expect(s.paragraphs[0].level).toBe(2);
     await shot(page, '17-indent-2');
     await clickTestId(page, 'tb-outdent');
     await clickTestId(page, 'tb-outdent');
     await clickTestId(page, 'tb-outdent'); // extra — should still be 0
     s = await readState(page);
-    expect(s.selection.resolvedAttrs.level).toBe(0);
+    expect(s.paragraphs[0].level).toBe(0);
     await shot(page, '18-outdent-floor-0');
   });
 
@@ -215,7 +202,6 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-bullet');
     await shot(page, '19-bullet');
     const s = await readState(page);
-    expect(s.selection.resolvedAttrs.bullet?.char).toBe('•');
     expect(s.paragraphs[0].bullet?.char).toBe('•');
   });
 

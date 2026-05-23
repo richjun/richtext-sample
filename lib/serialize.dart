@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'extract.dart';
 import 'state.dart';
 
@@ -21,8 +20,8 @@ String serializeAppState(AppState s) {
 //      flattened plain text + one representative style). zIndex (element.pdf
 //      stacking order) is emitted alongside.
 //   2. 신규 Rich Text   — paragraphs.
-//   3. editor-only(보존) — transform (rotation), selection. Not part of the Lab
-//      document model; kept for diagnostics. §5.7: rotation은 직렬화 보존,
+//   3. editor-only(보존) — transform (rotation). Not part of the Lab document
+//      model; kept for diagnostics. §5.7: rotation은 직렬화 보존,
 //      §5.5: deserializers ignore unknown fields.
 Map<String, dynamic> _box(BoxModel b, int zIndex) {
   final paragraphs = extractParagraphs(b.controller.document);
@@ -82,8 +81,6 @@ Map<String, dynamic> _box(BoxModel b, int zIndex) {
     },
     // ── 신규: Rich Text ──────────────────────────────────────────────
     'paragraphs': paragraphs.map((p) => _para(p, align)).toList(),
-    // ── editor-only diagnostics (보존용) ────────────────────────────
-    'selection': _selection(b.controller, paragraphs),
   };
 }
 
@@ -136,65 +133,3 @@ double _baseline(String script) {
   return 0.0;
 }
 
-Map<String, dynamic> _selection(
-    QuillController c, List<ParagraphView> paras) {
-  final sel = c.selection;
-  int offset = 0;
-  int paraIdx = 0;
-  int runIdx = 0;
-  outer:
-  for (var pi = 0; pi < paras.length; pi++) {
-    for (var ri = 0; ri < paras[pi].runs.length; ri++) {
-      final len = paras[pi].runs[ri].text.length;
-      if (sel.start <= offset + len) {
-        paraIdx = pi;
-        runIdx = ri;
-        break outer;
-      }
-      offset += len;
-    }
-    offset += 1; // newline between paragraphs
-  }
-  final attrs = c.getSelectionStyle().attributes;
-  final bg = attrs['background']?.value;
-  final script = () {
-    final v = attrs['script']?.value;
-    if (v == 'super') return 'super';
-    if (v == 'sub') return 'sub';
-    return 'none';
-  }();
-  // resolvedAttrs uses Lab vocabulary/values, kept flat for diagnostics.
-  return {
-    'paragraphIndex': paraIdx,
-    'runIndex': runIdx,
-    'offsetStart': sel.start,
-    'offsetEnd': sel.end,
-    'resolvedAttrs': {
-      'font': (attrs['font']?.value as String?) ?? 'Roboto',
-      'size': () {
-        final v = attrs['size']?.value;
-        if (v is num) return v.toDouble();
-        return double.tryParse(v?.toString() ?? '') ?? 14.0;
-      }(),
-      'color': _labColor(_hashHex(attrs['color']?.value, '#000000')),
-      'highlight': bg == null ? null : _labColor(_hashHex(bg, '#000000')),
-      'bold': attrs[Attribute.bold.key]?.value == true,
-      'italic': attrs[Attribute.italic.key]?.value == true,
-      'underline':
-          attrs[Attribute.underline.key]?.value == true ? 'sng' : 'none',
-      'strikethrough':
-          attrs[Attribute.strikeThrough.key]?.value == true ? 'single' : 'none',
-      'baseline': _baseline(script),
-      'align': (attrs['align']?.value as String?) ?? 'left',
-      'level': (attrs['indent']?.value is int) ? attrs['indent']!.value as int : 0,
-      'bullet': _bullet(attrs['list']?.value == 'bullet' ? 'bullet' : 'none'),
-    },
-  };
-}
-
-// Normalize a quill color value (may be '#RRGGBB' or 'RRGGBB') to '#RRGGBB'.
-String _hashHex(dynamic v, String fallback) {
-  if (v == null) return fallback;
-  final s = v.toString();
-  return s.startsWith('#') ? s : '#$s';
-}
