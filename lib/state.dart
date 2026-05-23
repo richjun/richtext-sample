@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
+import 'list_outdent_rule.dart';
+
 class BoxModel {
   final String id;
   double x;
@@ -24,7 +26,12 @@ class BoxModel {
     ScrollController? scrollController,
   })  : controller = controller ?? QuillController.basic(),
         focusNode = focusNode ?? FocusNode(),
-        scrollController = scrollController ?? ScrollController();
+        scrollController = scrollController ?? ScrollController() {
+    // Enable single-level outdent when pressing Enter on an empty nested list
+    // item. flutter_quill keeps rules on a shared singleton, so this applies to
+    // every editor in the app.
+    installListOutdentRules(this.controller.document);
+  }
 }
 
 class AppState extends ChangeNotifier {
