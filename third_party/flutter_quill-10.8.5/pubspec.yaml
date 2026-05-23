@@ -1,0 +1,80 @@
+# VENDORED COPY of flutter_quill 10.8.5, wired via dependency_overrides in the
+# root pubspec.yaml. Local patch: the unordered-list bullet marker now follows
+# center/right text alignment instead of staying pinned to the left edge — see
+# lib/src/editor/widgets/text/text_line.dart (RenderEditableTextLine.performLayout,
+# search "bullet marker follows alignment"). To re-create after an upgrade: copy
+# the published package, drop example/test/doc/nested packages, and re-apply that
+# patch. Unused dirs (example, test, doc, nested packages) were removed to keep
+# the path dependency small; dev_dependencies and screenshots are not resolved
+# for a path dependency, so they are dropped too.
+name: flutter_quill
+description: "A rich text editor built for Android, iOS, Web, and desktop platforms. It's the WYSIWYG editor and a Quill component for Flutter."
+version: 10.8.5
+homepage: https://github.com/singerdmx/flutter-quill/
+repository: https://github.com/singerdmx/flutter-quill/
+issue_tracker: https://github.com/singerdmx/flutter-quill/issues/
+documentation: https://github.com/singerdmx/flutter-quill/
+
+topics:
+  - ui
+  - widgets
+  - widget
+  - rich-text-editor
+  - quill
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+environment:
+  sdk: ">=3.1.6 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  # Dart Packages
+  intl: ^0.19.0
+  dart_quill_delta: ^10.0.0
+  collection: ^1.17.0
+  quiver: ^3.2.1
+  equatable: ^2.0.5
+  meta: ^1.10.0
+  html: ^0.15.4
+
+  flutter_colorpicker: ^1.1.0
+
+  # For converting HTML to Quill delta
+  flutter_quill_delta_from_html: ^1.4.1
+  markdown: ^7.2.1
+  charcode: ^1.3.1
+
+  # Plugins
+  url_launcher: ^6.2.4
+  flutter_keyboard_visibility_temp_fork: ^0.1.1
+  quill_native_bridge: ^10.7.9
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+  flutter_quill_test: ^10.0.0
+  test: ^1.24.3
+
+  # For scripts only
+  yaml_edit: ^2.2.1
+  yaml: ^3.1.2
+  http: ^1.2.1
+
+  path: any
+flutter:
+  uses-material-design: true
+  generate: true

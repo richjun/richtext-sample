@@ -54,9 +54,18 @@ dev_dependencies:
 # version references the bare `GMEM_MOVEABLE` constant. win32 >=5.5 exposes it
 # only via GLOBAL_ALLOC_FLAGS, so the Windows build fails to compile (see
 # flutter-quill issue #2612). Upstream has no fix, so we vendor a patched copy.
+#
+# flutter_quill renders the unordered-list bullet in a fixed leading slot pinned
+# to the line's left edge, so center/right-aligning a bullet line moves the text
+# but leaves the `•` far left. There is no public API to relocate the leading,
+# so we vendor a patched copy that lets the marker follow the alignment (it hugs
+# the aligned text). See third_party/flutter_quill-10.8.5/lib/src/editor/widgets/
+# text/text_line.dart (search "bullet marker follows alignment").
 dependency_overrides:
   quill_native_bridge_windows:
     path: third_party/quill_native_bridge_windows
+  flutter_quill:
+    path: third_party/flutter_quill-10.8.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
