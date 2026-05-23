@@ -132,26 +132,12 @@ class RichToolbar extends StatelessWidget {
             _icon('tb-align-right', Icons.format_align_right,
                 () => _apply(Attribute.rightAlignment),
                 active: align == 'right'),
-            _icon('tb-indent', Icons.format_indent_increase, () {
-              final c = _ctrl;
-              if (c == null) return;
-              final cur =
-                  c.getSelectionStyle().attributes['indent']?.value as int?;
-              final next = (cur ?? 0) + 1;
-              c.formatSelection(_indentLevel(next));
-            }),
-            _icon('tb-outdent', Icons.format_indent_decrease, () {
-              final c = _ctrl;
-              if (c == null) return;
-              final cur =
-                  c.getSelectionStyle().attributes['indent']?.value as int?;
-              final next = (cur ?? 0) - 1;
-              if (next <= 0) {
-                c.formatSelection(Attribute.clone(Attribute.indentL1, null));
-              } else {
-                c.formatSelection(_indentLevel(next));
-              }
-            }),
+            // Delegate to flutter_quill's indent logic so the toolbar matches
+            // the Tab key exactly (caps at level 5 = six levels, 0..5).
+            _icon('tb-indent', Icons.format_indent_increase,
+                () => _ctrl?.indentSelection(true)),
+            _icon('tb-outdent', Icons.format_indent_decrease,
+                () => _ctrl?.indentSelection(false)),
             _icon('tb-bullet', Icons.format_list_bulleted,
                 () => _toggleSimple(Attribute.ul),
                 active: _isOn(attrs, Attribute.ul)),
@@ -328,17 +314,4 @@ class RichToolbar extends StatelessWidget {
         ),
       );
 
-  Attribute _indentLevel(int n) {
-    switch (n) {
-      case 1:
-        return Attribute.indentL1;
-      case 2:
-        return Attribute.indentL2;
-      case 3:
-        return Attribute.indentL3;
-      default:
-        if (n > 3) return Attribute.indentL3;
-        return Attribute.clone(Attribute.indentL1, null);
-    }
-  }
 }
