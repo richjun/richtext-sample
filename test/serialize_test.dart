@@ -4,23 +4,42 @@ import 'package:richtext/serialize.dart';
 import 'package:richtext/state.dart';
 
 void main() {
-  test('empty state serializes to selectedBoxId=null and empty boxes', () {
+  test('empty state serializes to an empty object', () {
     final s = AppState();
     final json = jsonDecode(serializeAppState(s));
-    expect(json['selectedBoxId'], null);
-    expect(json['boxes'], []);
+    expect(json, <String, dynamic>{});
   });
 
-  test('one box with default content serializes to spec shape', () {
+  test('one box serializes to Lab { textRotation, paragraphs } shape', () {
     final s = AppState()
       ..addBox(BoxModel(id: 'box-1', x: 10, y: 20, width: 300, height: 100))
       ..select('box-1');
-    final j = jsonDecode(serializeAppState(s));
-    expect(j['selectedBoxId'], 'box-1');
-    expect(j['boxes'][0]['id'], 'box-1');
-    expect(j['boxes'][0]['x'], 10);
-    expect(j['boxes'][0]['scale'], 1.0);
-    expect(j['boxes'][0]['rotationDeg'], 0.0);
-    expect(j['boxes'][0]['paragraphs'][0]['align'], 'left');
+    final j = jsonDecode(serializeAppState(s)) as Map<String, dynamic>;
+
+    // Lab format: only textRotation + paragraphs (no box wrapper).
+    expect(j.keys.toSet(), {'textRotation', 'paragraphs'});
+    expect(j['textRotation'], 0.0);
+
+    final p = (j['paragraphs'] as List).first as Map<String, dynamic>;
+    // Paragraph: level, alignment, bullet, runs (no lineSpacing/indent/etc).
+    expect(p.keys.toSet(), {'level', 'alignment', 'bullet', 'runs'});
+    expect(p['level'], 0);
+    expect(p['alignment'], 'left');
+    expect(p['bullet'], false); // boolean: no bullet
+
+    final run = (p['runs'] as List).first as Map<String, dynamic>;
+    expect(run.keys.toSet(), {'text', 'style', 'fill'});
+
+    final style = run['style'] as Map<String, dynamic>;
+    expect(style.containsKey('color'), false); // color moved to fill
+    expect(style['highlight'], '0x00000000'); // transparent default
+    expect(style['font'], 'Roboto');
+
+    // fill: { data: { color } } — no type / opacity.
+    final fill = run['fill'] as Map<String, dynamic>;
+    expect(fill.keys.toSet(), {'data'});
+    final data = fill['data'] as Map<String, dynamic>;
+    expect(data.keys.toSet(), {'color'});
+    expect(data['color'], '0xFF000000');
   });
 }

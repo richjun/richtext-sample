@@ -54,21 +54,26 @@ void main() {
     expect(serializeAppState(dst), equals(json1));
   });
 
-  test('geometry (offset/size/rotation) restores', () {
+  test('rotation restores; geometry is not part of the Lab format', () {
     final src = AppState()
       ..addBox(BoxModel(
           id: 'box-1', x: 11, y: 22, width: 200, height: 80, rotationDeg: 30));
-    final json = serializeAppState(src);
+    final decoded = jsonDecode(serializeAppState(src)) as Map<String, dynamic>;
+
+    // offset/size are intentionally omitted from the Lab format.
+    expect(decoded.containsKey('offset'), false);
+    expect(decoded.containsKey('size'), false);
 
     final dst = AppState()
-      ..addBox(BoxModel(id: 'box-1', x: 0, y: 0, width: 1, height: 1));
-    applyAppState(dst, jsonDecode(json) as Map<String, dynamic>);
+      ..addBox(BoxModel(id: 'box-1', x: 5, y: 6, width: 7, height: 8));
+    applyAppState(dst, decoded);
 
     final b = dst.boxes.first;
-    expect(b.x, 11);
-    expect(b.y, 22);
-    expect(b.width, 200);
-    expect(b.height, 80);
-    expect(b.rotationDeg, 30);
+    expect(b.rotationDeg, 30); // textRotation restores
+    // geometry left untouched (not serialized → not restored).
+    expect(b.x, 5);
+    expect(b.y, 6);
+    expect(b.width, 7);
+    expect(b.height, 8);
   });
 }

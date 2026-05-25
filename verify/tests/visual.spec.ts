@@ -1,5 +1,5 @@
 import {
-  test, expect, gotoApp, readState, clickTestId,
+  test, expect, gotoApp, readState, readLayout, clickTestId,
   clickBoxBody, typeText, selectAll, dragHandle, shot,
 } from './_helpers';
 
@@ -72,7 +72,7 @@ test.describe('User-flow visual verification', () => {
     await shot(page, '08-color-red');
     const s = await readState(page);
     expect(s.paragraphs[0].runs.some(
-      (r: any) => r.style.color === '0xFFFF0000')).toBe(true);
+      (r: any) => r.fill?.data?.color === '0xFFFF0000')).toBe(true);
   });
 
   test('Highlight (yellow)', async ({ page }) => {
@@ -126,7 +126,8 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'size-20');
     await shot(page, '11-size-20');
     const s = await readState(page);
-    expect(s.paragraphs[0].runs.some((r: any) => r.style.size === 20)).toBe(true);
+    // Lab size is px: 20pt × 96/72 = 26.67.
+    expect(s.paragraphs[0].runs.some((r: any) => r.style.size === 26.67)).toBe(true);
   });
 
   test('Superscript', async ({ page }) => {
@@ -159,7 +160,7 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-align-center');
     await shot(page, '14-align-center');
     const s = await readState(page);
-    expect(s.paragraphs[0].align).toBe('center');
+    expect(s.paragraphs[0].alignment).toBe('center');
   });
 
   test('Align right', async ({ page }) => {
@@ -170,7 +171,7 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-align-right');
     await shot(page, '15-align-right');
     const s = await readState(page);
-    expect(s.paragraphs[0].align).toBe('right');
+    expect(s.paragraphs[0].alignment).toBe('right');
   });
 
   test('Indent +1 and outdent floors at 0', async ({ page }) => {
@@ -202,7 +203,8 @@ test.describe('User-flow visual verification', () => {
     await clickTestId(page, 'tb-bullet');
     await shot(page, '19-bullet');
     const s = await readState(page);
-    expect(s.paragraphs[0].bullet?.char).toBe('•');
+    // bullet is a boolean.
+    expect(s.paragraphs[0].bullet).toBe(true);
   });
 
   // Multi-paragraph / multi-run case from the spec ("paragraph와 run은 멀티로 들어갈수있다")
@@ -222,21 +224,22 @@ test.describe('User-flow visual verification', () => {
   test('Side handle right increases width', async ({ page }) => {
     await gotoApp(page);
     // Box is already selected at startup so handles are visible.
-    const before = (await readState(page)).boundingBox.width;
+    // Geometry isn't in the Lab JSON anymore, so verify via the rendered layout.
+    const before = (await readLayout(page, 'box-1')).width;
     await shot(page, '21-resize-before');
     await dragHandle(page, 'box-1-handle-side-r', 80, 0);
     await shot(page, '22-resize-after');
-    const after = (await readState(page)).boundingBox.width;
+    const after = (await readLayout(page, 'box-1')).width;
     expect(after).toBeGreaterThan(before + 20);
   });
 
-  test('Rotate handle changes rotationDeg', async ({ page }) => {
+  test('Rotate handle changes textRotation', async ({ page }) => {
     await gotoApp(page);
-    const before = (await readState(page)).transform.rotation;
+    const before = (await readState(page)).textRotation;
     await shot(page, '25-rotate-before');
     await dragHandle(page, 'box-1-handle-rotate', 100, 30);
     await shot(page, '26-rotate-after');
-    const after = (await readState(page)).transform.rotation;
+    const after = (await readState(page)).textRotation;
     expect(Math.abs(after - before)).toBeGreaterThan(5);
   });
 });
